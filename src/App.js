@@ -1,4 +1,9 @@
-// App.js — Brittany-like layout + mouse spotlight + clickable projects
+// App.js — solid navy background, spotlight cursor, Brittany-style layout
+// - About replaced with your text
+// - Left menu highlights immediately on click (and via scroll)
+// - Experience updated (no "Stakeholder Support" chip)
+// - Projects are fully clickable and link to GitHub rows
+
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
@@ -10,14 +15,6 @@ const fadeUp = (delay = 0) => ({
   viewport: { once: true, amount: 0.4 },
 });
 const hoverLift = { whileHover: { y: -2 }, whileTap: { y: 0 } };
-
-/* ---------- smooth-scroll with offset ---------- */
-const scrollToId = (id) => {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const y = el.getBoundingClientRect().top + window.pageYOffset - 32;
-  window.scrollTo({ top: y, behavior: "smooth" });
-};
 
 /* ---------- icons ---------- */
 const Icon = {
@@ -41,6 +38,11 @@ const Icon = {
       <path d="M20 4a16 16 0 0 0-4-.93l-.2.4A13 13 0 0 1 12 4c-1.28 0-2.54-.18-3.8-.53l-.2-.4A16 16 0 0 0 4 4C2.38 6.41 1.57 8.73 1.34 11.02c.37 4.13 2.77 6.6 5.62 8l.45-.78c-.92-.35-1.75-.87-2.47-1.54.2.15.41.29.63.42 2.3 1.35 4.6 1.64 6.43 1.64s4.12-.29 6.43-1.64c.22-.13.43-.27.63-.42-.72.67-1.55 1.19-2.47 1.54l.45.78c2.85-1.4 5.25-3.87 5.62-8C22.43 8.73 21.62 6.41 20 4ZM9.35 14.5c-.66 0-1.2-.66-1.2-1.47 0-.81.53-1.47 1.2-1.47.66 0 1.2.66 1.2 1.47 0 .81-.53 1.47-1.2 1.47Zm5.3 0c-.66 0-1.2-.66-1.2-1.47 0-.81.54-1.47 1.2-1.47.67 0 1.2.66 1.2 1.47 0 .81-.53 1.47-1.2 1.47Z" />
     </svg>
   ),
+  Mail: (p) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...p}>
+      <path d="M20 4H4c-1.1 0-2 .9-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5L4 8V6l8 5 8-5v2Z" />
+    </svg>
+  ),
   External: (p) => (
     <svg viewBox="0 0 24 24" fill="currentColor" {...p}>
       <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3ZM5 5h6v2H7v10h10v-4h2v6H5V5Z" />
@@ -48,12 +50,12 @@ const Icon = {
   ),
 };
 
-/* ---------- small card ---------- */
+/* ---------- thin card ---------- */
 const Card = ({ children, className = "" }) => (
   <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-6 ${className}`}>{children}</div>
 );
 
-/* ---------- active-section tracker for left nav ---------- */
+/* ---------- active-section tracker (returns [active, setActive]) ---------- */
 const useActiveSection = (ids) => {
   const [active, setActive] = useState(ids[0]);
   useEffect(() => {
@@ -67,22 +69,34 @@ const useActiveSection = (ids) => {
     });
     return () => obs.disconnect();
   }, [ids]);
-  return active;
+  return [active, setActive];
 };
 
-/* ---------- spotlight that follows cursor ---------- */
+/* ---------- smooth-scroll with immediate highlight ---------- */
+const scrollToId = (id, setActive) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const y = el.getBoundingClientRect().top + window.pageYOffset - 32;
+  setActive?.(id); // update left-nav immediately
+  window.scrollTo({ top: y, behavior: "smooth" });
+  history.replaceState(null, "", `#${id}`);
+};
+
+/* ---------- subtle spotlight following cursor ---------- */
 const Spotlight = () => {
   const [pos, setPos] = useState({ x: -500, y: -500 });
   useEffect(() => {
-    const handler = (e) => setPos({ x: e.clientX, y: e.clientY });
-    window.addEventListener("mousemove", handler);
-    return () => window.removeEventListener("mousemove", handler);
+    const onMove = (e) => setPos({ x: e.clientX, y: e.clientY });
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
   }, []);
   return (
     <div
       className="pointer-events-none fixed inset-0 -z-10"
       style={{
-        background: `radial-gradient(120px 120px at ${pos.x}px ${pos.y}px, rgba(255,255,255,0.08), rgba(255,255,255,0))`,
+        background: `radial-gradient(220px 220px at ${pos.x}px ${pos.y}px,
+          rgba(255,255,255,0.06), rgba(255,255,255,0.0) 60%)`,
+        mixBlendMode: "screen",
       }}
     />
   );
@@ -93,16 +107,10 @@ const Spotlight = () => {
 /* ============================== */
 export default function App() {
   const sections = ["about", "experience", "projects", "contact"];
-  const active = useActiveSection(sections);
+  const [active, setActive] = useActiveSection(sections);
 
   return (
-    <div className="relative min-h-screen text-slate-200">
-      {/* background gradients (muted to remove “white stuff”) */}
-      <div className="pointer-events-none fixed inset-0 -z-20 bg-gradient-to-br from-[#0b1220] via-[#0b1526] to-[#0a111c]" />
-      <div className="pointer-events-none fixed inset-0 -z-20">
-        <div className="absolute -top-56 -left-40 h-[28rem] w-[28rem] rounded-full bg-emerald-500/8 blur-3xl" />
-        <div className="absolute -bottom-56 -right-40 h-[28rem] w-[28rem] rounded-full bg-cyan-400/8 blur-3xl" />
-      </div>
+    <div className="relative min-h-screen bg-[#0b1220] text-slate-200">
       <Spotlight />
 
       <main className="mx-auto grid max-w-6xl gap-8 px-6 md:px-8 lg:grid-cols-12">
@@ -120,19 +128,23 @@ export default function App() {
             <motion.h2 className="mt-2 text-xl font-semibold text-slate-300" {...fadeUp(0.05)}>
               Front-End & Automation Engineer
             </motion.h2>
-            <motion.p className="mt-3 max-w-md text-slate-400" {...fadeUp(0.1)}>
-              I build clean, fast interfaces and Discord automations that make operations calmer and fair. I focus on
-              reliability, performance, and details that make the web feel effortless.
+
+            {/* ABOUT TEXT (your requested copy) */}
+            <motion.p className="mt-3 max-w-md text-slate-300" {...fadeUp(0.1)}>
+              Sophomore Software Engineering student at the University of Michigan – Dearborn, passionate about
+              developing efficient and innovative software solutions. Experienced in C++, Python, and web technologies,
+              with hands on projects in automation, simulation, and application development. Committed to continuous
+              learning and advancing my skills as a future engineer.
             </motion.p>
           </div>
 
-          {/* Left nav (no blue highlight, custom active indicator) */}
+          {/* Left nav */}
           <nav className="mt-10">
             <ul className="space-y-4 text-sm tracking-wider">
               {sections.map((id) => (
                 <li key={id} className="relative">
                   <button
-                    onClick={() => scrollToId(id)}
+                    onClick={() => scrollToId(id, setActive)}
                     className={`group inline-flex items-center gap-4 text-left uppercase focus-visible:outline-none ${
                       active === id ? "text-emerald-300" : "text-slate-400 hover:text-slate-200"
                     }`}
@@ -173,17 +185,8 @@ export default function App() {
 
         {/* RIGHT (content) */}
         <section className="lg:col-span-7 py-16 space-y-24">
-          {/* ABOUT */}
-          <motion.section id="about" {...fadeUp(0)}>
-            <div className="prose prose-invert max-w-none text-slate-300">
-              <p>
-                Sophomore Software Engineering student at the University of Michigan – Dearborn, 
-                passionate about developing efficient and innovative software solutions. 
-                Experienced in C++, Python, and web technologies, with hands on projects in automation, simulation, and application development. 
-                Committed to continuous learning and advancing my skills as a future engineer.
-              </p>
-            </div>
-          </motion.section>
+          {/* ABOUT anchor target (so clicking "about" scrolls correctly) */}
+          <div id="about" />
 
           {/* EXPERIENCE */}
           <motion.section id="experience" {...fadeUp(0)}>
@@ -202,8 +205,11 @@ export default function App() {
                 <span className="text-xs text-slate-500">2024 — Present</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                {["Power BI", "Data Quality", "Dashboards", "Stakeholder Support"].map((t) => (
-                  <span key={t} className="rounded-full bg-emerald-400/10 text-emerald-200/90 border border-emerald-400/20 px-2.5 py-1 text-xs">
+                {["Power BI", "Data Quality", "Dashboards"].map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-full bg-emerald-400/10 text-emerald-200/90 border border-emerald-400/20 px-2.5 py-1 text-xs"
+                  >
                     {t}
                   </span>
                 ))}
@@ -211,7 +217,7 @@ export default function App() {
             </Card>
           </motion.section>
 
-          {/* PROJECTS — each card is clickable and has a GitHub row */}
+          {/* PROJECTS */}
           <motion.section id="projects" {...fadeUp(0)}>
             <h3 className="mb-6 text-lg font-semibold text-slate-200">Projects</h3>
 
@@ -219,7 +225,7 @@ export default function App() {
               {/* Ticket Bot */}
               <motion.a
                 {...hoverLift}
-                href="https://github.com/Kareem-cam" // replace with repo url
+                href="https://github.com/Kareem-cam" // TODO: replace with repo URL
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -247,7 +253,7 @@ export default function App() {
               {/* Queue Bot */}
               <motion.a
                 {...hoverLift}
-                href="https://github.com/Kareem-cam" // replace with repo url
+                href="https://github.com/Kareem-cam" // TODO: replace with repo URL
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -255,7 +261,7 @@ export default function App() {
                 <Card className="h-full">
                   <h4 className="text-slate-100 font-semibold">Queue Bot — Fair Worker Routing</h4>
                   <p className="mt-2 text-slate-400">
-                    Workers join the queue. New orders go to the next worker automatically, ensuring{" "}
+                    Workers (not customers) join the queue. New orders go to the next worker automatically, ensuring{" "}
                     <span className="text-slate-200">fair distribution</span> and preventing overload.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
@@ -275,7 +281,7 @@ export default function App() {
               {/* Count Bot */}
               <motion.a
                 {...hoverLift}
-                href="https://github.com/Kareem-cam" // replace with repo url
+                href="https://github.com/Kareem-cam" // TODO: replace with repo URL
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -284,8 +290,8 @@ export default function App() {
                   <h4 className="text-slate-100 font-semibold">Count Bot — Orders Leaderboard</h4>
                   <p className="mt-2 text-slate-400">
                     Tracks how many orders each worker completes and shows a live{" "}
-                    <span className="text-slate-200">leaderboard</span>. Prevents doubles and keeps audit logs for
-                    clean performance reviews.
+                    <span className="text-slate-200">leaderboard</span>. Prevents doubles and keeps audit logs for clean
+                    performance reviews.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     {["Node", "Discord API", "Anti-spam", "Audit logs"].map((t) => (
@@ -304,7 +310,7 @@ export default function App() {
               {/* Uber Eats Estimator */}
               <motion.a
                 {...hoverLift}
-                href="https://github.com/Kareem-cam" // replace with repo url
+                href="https://github.com/Kareem-cam" // TODO: replace with repo URL
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -332,14 +338,14 @@ export default function App() {
 
           {/* CONTACT */}
           <motion.section id="contact" {...fadeUp(0)}>
-            <h3 className="mb-6 text-lg font-semibold text-slate-2 00">Contact</h3>
+            <h3 className="mb-6 text-lg font-semibold text-slate-200">Contact</h3>
             <Card>
               <div className="grid sm:grid-cols-2 gap-4">
                 <a
                   href="mailto:kareem12345h@gmail.com"
                   className="flex items-center gap-3 rounded-lg bg-white/5 px-4 py-3 hover:bg-white/10 transition focus-visible:outline-none"
                 >
-                  <svg viewBox="0 0 24 24" className="h-5 w-5 text-emerald-300" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5L4 8V6l8 5 8-5v2Z"/></svg>
+                  <Icon.Mail className="h-5 w-5 text-emerald-300" />
                   kareem12345h@gmail.com
                 </a>
                 <a
