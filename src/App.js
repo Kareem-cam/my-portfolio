@@ -1,16 +1,17 @@
-// App.js — Brittany-style layout/colors/animations (no resume button)
+// App.js — Brittany-like layout + mouse spotlight + clickable projects
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
-/* ---------- helpers ---------- */
+/* ---------- animations ---------- */
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 16 },
   whileInView: { opacity: 1, y: 0 },
   transition: { duration: 0.6, ease: "easeOut", delay },
   viewport: { once: true, amount: 0.4 },
 });
-const hoverTap = { whileHover: { y: -2 }, whileTap: { y: 0 } };
+const hoverLift = { whileHover: { y: -2 }, whileTap: { y: 0 } };
 
+/* ---------- smooth-scroll with offset ---------- */
 const scrollToId = (id) => {
   const el = document.getElementById(id);
   if (!el) return;
@@ -40,29 +41,25 @@ const Icon = {
       <path d="M20 4a16 16 0 0 0-4-.93l-.2.4A13 13 0 0 1 12 4c-1.28 0-2.54-.18-3.8-.53l-.2-.4A16 16 0 0 0 4 4C2.38 6.41 1.57 8.73 1.34 11.02c.37 4.13 2.77 6.6 5.62 8l.45-.78c-.92-.35-1.75-.87-2.47-1.54.2.15.41.29.63.42 2.3 1.35 4.6 1.64 6.43 1.64s4.12-.29 6.43-1.64c.22-.13.43-.27.63-.42-.72.67-1.55 1.19-2.47 1.54l.45.78c2.85-1.4 5.25-3.87 5.62-8C22.43 8.73 21.62 6.41 20 4ZM9.35 14.5c-.66 0-1.2-.66-1.2-1.47 0-.81.53-1.47 1.2-1.47.66 0 1.2.66 1.2 1.47 0 .81-.53 1.47-1.2 1.47Zm5.3 0c-.66 0-1.2-.66-1.2-1.47 0-.81.54-1.47 1.2-1.47.67 0 1.2.66 1.2 1.47 0 .81-.53 1.47-1.2 1.47Z" />
     </svg>
   ),
-  Mail: (p) => (
+  External: (p) => (
     <svg viewBox="0 0 24 24" fill="currentColor" {...p}>
-      <path d="M20 4H4c-1.1 0-2 .9-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5L4 8V6l8 5 8-5v2Z" />
+      <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3ZM5 5h6v2H7v10h10v-4h2v6H5V5Z" />
     </svg>
   ),
 };
 
-/* ---------- thin card ---------- */
+/* ---------- small card ---------- */
 const Card = ({ children, className = "" }) => (
   <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-6 ${className}`}>{children}</div>
 );
 
-/* ---------- active section (for left menu underline) ---------- */
+/* ---------- active-section tracker for left nav ---------- */
 const useActiveSection = (ids) => {
   const [active, setActive] = useState(ids[0]);
   useEffect(() => {
     const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) setActive(e.target.id);
-        });
-      },
-      { rootMargin: "-40% 0px -50% 0px", threshold: [0, 0.2, 0.5, 1] }
+      (entries) => entries.forEach((e) => e.isIntersecting && setActive(e.target.id)),
+      { rootMargin: "-45% 0px -45% 0px", threshold: [0, 0.3, 1] }
     );
     ids.forEach((id) => {
       const el = document.getElementById(id);
@@ -71,6 +68,24 @@ const useActiveSection = (ids) => {
     return () => obs.disconnect();
   }, [ids]);
   return active;
+};
+
+/* ---------- spotlight that follows cursor ---------- */
+const Spotlight = () => {
+  const [pos, setPos] = useState({ x: -500, y: -500 });
+  useEffect(() => {
+    const handler = (e) => setPos({ x: e.clientX, y: e.clientY });
+    window.addEventListener("mousemove", handler);
+    return () => window.removeEventListener("mousemove", handler);
+  }, []);
+  return (
+    <div
+      className="pointer-events-none fixed inset-0 -z-10"
+      style={{
+        background: `radial-gradient(120px 120px at ${pos.x}px ${pos.y}px, rgba(255,255,255,0.08), rgba(255,255,255,0))`,
+      }}
+    />
+  );
 };
 
 /* ============================== */
@@ -82,15 +97,16 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen text-slate-200">
-      {/* background gradient like Brittany */}
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-br from-[#0b1220] via-[#0b1526] to-[#0a111c]" />
-      <div className="pointer-events-none fixed -z-10 inset-0">
-        <div className="absolute -top-48 -left-32 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="absolute -bottom-48 -right-32 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl" />
+      {/* background gradients (muted to remove “white stuff”) */}
+      <div className="pointer-events-none fixed inset-0 -z-20 bg-gradient-to-br from-[#0b1220] via-[#0b1526] to-[#0a111c]" />
+      <div className="pointer-events-none fixed inset-0 -z-20">
+        <div className="absolute -top-56 -left-40 h-[28rem] w-[28rem] rounded-full bg-emerald-500/8 blur-3xl" />
+        <div className="absolute -bottom-56 -right-40 h-[28rem] w-[28rem] rounded-full bg-cyan-400/8 blur-3xl" />
       </div>
+      <Spotlight />
 
       <main className="mx-auto grid max-w-6xl gap-8 px-6 md:px-8 lg:grid-cols-12">
-        {/* LEFT PANEL (sticky) */}
+        {/* LEFT (sticky) */}
         <aside className="lg:col-span-5 py-16 lg:sticky lg:top-0 lg:h-screen flex flex-col">
           <div>
             <motion.h1
@@ -106,24 +122,24 @@ export default function App() {
             </motion.h2>
             <motion.p className="mt-3 max-w-md text-slate-400" {...fadeUp(0.1)}>
               I build clean, fast interfaces and Discord automations that make operations calmer and fair. I focus on
-              reliability, performance, and small details that make the web feel effortless.
+              reliability, performance, and details that make the web feel effortless.
             </motion.p>
           </div>
 
-          {/* Left nav with animated underline */}
+          {/* Left nav (no blue highlight, custom active indicator) */}
           <nav className="mt-10">
             <ul className="space-y-4 text-sm tracking-wider">
               {sections.map((id) => (
                 <li key={id} className="relative">
                   <button
                     onClick={() => scrollToId(id)}
-                    className={`group inline-flex items-center gap-4 text-left uppercase ${
+                    className={`group inline-flex items-center gap-4 text-left uppercase focus-visible:outline-none ${
                       active === id ? "text-emerald-300" : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
                     <span
-                      className={`h-px w-10 transition-all ${
-                        active === id ? "bg-emerald-300 w-16" : "bg-slate-500/40 group-hover:w-16"
+                      className={`h-px transition-all ${
+                        active === id ? "bg-emerald-300 w-16" : "bg-slate-500/40 w-10 group-hover:w-16"
                       }`}
                     />
                     {id}
@@ -133,7 +149,7 @@ export default function App() {
             </ul>
           </nav>
 
-          {/* socials bottom-left */}
+          {/* socials */}
           <div className="mt-auto pt-10 flex items-center gap-4 text-slate-400">
             <a href="https://github.com/Kareem-cam" target="_blank" rel="noreferrer" className="hover:text-slate-200">
               <Icon.Github className="h-5 w-5" />
@@ -155,19 +171,16 @@ export default function App() {
           </div>
         </aside>
 
-        {/* RIGHT COLUMN (content) */}
+        {/* RIGHT (content) */}
         <section className="lg:col-span-7 py-16 space-y-24">
           {/* ABOUT */}
           <motion.section id="about" {...fadeUp(0)}>
             <div className="prose prose-invert max-w-none text-slate-300">
               <p>
-                I’m a developer who enjoys the intersection of tidy UI and robust engineering. Recently I’ve been
-                building Discord tooling for order operations: queues that feel fair to workers, ticketing that stays
-                organized under load, and small dashboards that surface the right info at the right time.
-              </p>
-              <p>
-                When I’m not coding, I’m usually polishing micro-interactions, tuning rate limits, or refactoring for
-                reliability. Tools I like: React, Tailwind, Framer Motion, Node, and Python.
+                Sophomore Software Engineering student at the University of Michigan – Dearborn, 
+                passionate about developing efficient and innovative software solutions. 
+                Experienced in C++, Python, and web technologies, with hands on projects in automation, simulation, and application development. 
+                Committed to continuous learning and advancing my skills as a future engineer.
               </p>
             </div>
           </motion.section>
@@ -178,16 +191,18 @@ export default function App() {
             <Card>
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <h4 className="text-slate-100 font-semibold">Freelance — Full-Stack & Automation</h4>
+                  <h4 className="text-slate-100 font-semibold">
+                    Apprentice — Juvenile & Youth Services, Wayne County, Michigan
+                  </h4>
                   <p className="mt-2 text-slate-400">
-                    Built Discord bots and small web apps for order workflows, emphasizing accessibility, performance,
-                    and operational calm.
+                    Assisted on projects and helped distribute accurate data using <span className="text-slate-200">Power BI</span>.
+                    Supported reporting tasks and quality checks to ensure stakeholders received the correct insights.
                   </p>
                 </div>
                 <span className="text-xs text-slate-500">2024 — Present</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                {["JavaScript", "TypeScript", "React", "Node", "Tailwind", "Framer Motion"].map((t) => (
+                {["Power BI", "Data Quality", "Dashboards", "Stakeholder Support"].map((t) => (
                   <span key={t} className="rounded-full bg-emerald-400/10 text-emerald-200/90 border border-emerald-400/20 px-2.5 py-1 text-xs">
                     {t}
                   </span>
@@ -196,19 +211,24 @@ export default function App() {
             </Card>
           </motion.section>
 
-          {/* PROJECTS */}
+          {/* PROJECTS — each card is clickable and has a GitHub row */}
           <motion.section id="projects" {...fadeUp(0)}>
             <h3 className="mb-6 text-lg font-semibold text-slate-200">Projects</h3>
 
             <div className="grid gap-6 md:grid-cols-2">
               {/* Ticket Bot */}
-              <motion.div {...hoverTap}>
+              <motion.a
+                {...hoverLift}
+                href="https://github.com/Kareem-cam" // replace with repo url
+                target="_blank"
+                rel="noreferrer"
+                className="block focus-visible:outline-none"
+              >
                 <Card className="h-full">
                   <h4 className="text-slate-100 font-semibold">Ticket Bot — Orders & Mass-Clear</h4>
                   <p className="mt-2 text-slate-400">
-                    Ticketing system purpose-built for busy order servers. Staff can{" "}
-                    <span className="text-slate-200">mass-clear tickets</span> safely, claim/close with transcripts,
-                    and enforce role-based permissions. Designed for high throughput during rushes.
+                    Ticketing system for busy order servers. Staff can <span className="text-slate-200">mass-clear tickets</span>,
+                    claim/close with transcripts, and enforce role gating. Designed for rush hours.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     {["Node", "Discord API", "Transcripts", "Role gating", "Rate limits"].map((t) => (
@@ -217,17 +237,26 @@ export default function App() {
                       </span>
                     ))}
                   </div>
+                  <div className="mt-4 flex items-center gap-2 text-emerald-300">
+                    <Icon.Github className="w-4 h-4" />
+                    <span>View on GitHub</span>
+                  </div>
                 </Card>
-              </motion.div>
+              </motion.a>
 
-              {/* Queue Bot (workers queue) */}
-              <motion.div {...hoverTap}>
+              {/* Queue Bot */}
+              <motion.a
+                {...hoverLift}
+                href="https://github.com/Kareem-cam" // replace with repo url
+                target="_blank"
+                rel="noreferrer"
+                className="block focus-visible:outline-none"
+              >
                 <Card className="h-full">
                   <h4 className="text-slate-100 font-semibold">Queue Bot — Fair Worker Routing</h4>
                   <p className="mt-2 text-slate-400">
-                    Workers join the queue (not customers). When a new order arrives,{" "}
-                    <span className="text-slate-200">the next worker in line</span> automatically gets the ticket,
-                    ensuring fair distribution and preventing overload.
+                    Workers join the queue. New orders go to the next worker automatically, ensuring{" "}
+                    <span className="text-slate-200">fair distribution</span> and preventing overload.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     {["Node", "Discord API", "Slash commands", "Redis/JSON store", "Metrics"].map((t) => (
@@ -236,17 +265,27 @@ export default function App() {
                       </span>
                     ))}
                   </div>
+                  <div className="mt-4 flex items-center gap-2 text-emerald-300">
+                    <Icon.Github className="w-4 h-4" />
+                    <span>View on GitHub</span>
+                  </div>
                 </Card>
-              </motion.div>
+              </motion.a>
 
-              {/* Count Bot (orders leaderboard) */}
-              <motion.div {...hoverTap}>
+              {/* Count Bot */}
+              <motion.a
+                {...hoverLift}
+                href="https://github.com/Kareem-cam" // replace with repo url
+                target="_blank"
+                rel="noreferrer"
+                className="block focus-visible:outline-none"
+              >
                 <Card className="h-full">
                   <h4 className="text-slate-100 font-semibold">Count Bot — Orders Leaderboard</h4>
                   <p className="mt-2 text-slate-400">
-                    Tracks how many orders each worker completes and displays a live{" "}
-                    <span className="text-slate-200">leaderboard</span>. Prevents spam/doubles and keeps clean audit
-                    logs so performance reviews are simple.
+                    Tracks how many orders each worker completes and shows a live{" "}
+                    <span className="text-slate-200">leaderboard</span>. Prevents doubles and keeps audit logs for
+                    clean performance reviews.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     {["Node", "Discord API", "Anti-spam", "Audit logs"].map((t) => (
@@ -255,16 +294,25 @@ export default function App() {
                       </span>
                     ))}
                   </div>
+                  <div className="mt-4 flex items-center gap-2 text-emerald-300">
+                    <Icon.Github className="w-4 h-4" />
+                    <span>View on GitHub</span>
+                  </div>
                 </Card>
-              </motion.div>
+              </motion.a>
 
               {/* Uber Eats Estimator */}
-              <motion.div {...hoverTap}>
+              <motion.a
+                {...hoverLift}
+                href="https://github.com/Kareem-cam" // replace with repo url
+                target="_blank"
+                rel="noreferrer"
+                className="block focus-visible:outline-none"
+              >
                 <Card className="h-full">
                   <h4 className="text-slate-100 font-semibold">Uber Eats Estimator — Cart Lock & Fees</h4>
                   <p className="mt-2 text-slate-400">
-                    Parses group-order links, detects locked carts, and estimates totals with taxes, fees, and applied
-                    promos. Cuts guesswork before checkout.
+                    Parses group-order links, detects locked carts, and estimates totals with taxes, fees, and promos.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     {["Playwright/Puppeteer", "Automation", "Node"].map((t) => (
@@ -273,28 +321,32 @@ export default function App() {
                       </span>
                     ))}
                   </div>
+                  <div className="mt-4 flex items-center gap-2 text-emerald-300">
+                    <Icon.Github className="w-4 h-4" />
+                    <span>View on GitHub</span>
+                  </div>
                 </Card>
-              </motion.div>
+              </motion.a>
             </div>
           </motion.section>
 
           {/* CONTACT */}
           <motion.section id="contact" {...fadeUp(0)}>
-            <h3 className="mb-6 text-lg font-semibold text-slate-200">Contact</h3>
+            <h3 className="mb-6 text-lg font-semibold text-slate-2 00">Contact</h3>
             <Card>
               <div className="grid sm:grid-cols-2 gap-4">
                 <a
                   href="mailto:kareem12345h@gmail.com"
-                  className="flex items-center gap-3 rounded-lg bg-white/5 px-4 py-3 hover:bg-white/10 transition"
+                  className="flex items-center gap-3 rounded-lg bg-white/5 px-4 py-3 hover:bg-white/10 transition focus-visible:outline-none"
                 >
-                  <Icon.Mail className="h-5 w-5 text-emerald-300" />
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 text-emerald-300" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5L4 8V6l8 5 8-5v2Z"/></svg>
                   kareem12345h@gmail.com
                 </a>
                 <a
                   href="https://github.com/Kareem-cam"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-3 rounded-lg bg-white/5 px-4 py-3 hover:bg-white/10 transition"
+                  className="flex items-center gap-3 rounded-lg bg-white/5 px-4 py-3 hover:bg-white/10 transition focus-visible:outline-none"
                 >
                   <Icon.Github className="h-5 w-5 text-emerald-300" />
                   github.com/Kareem-cam
@@ -303,7 +355,7 @@ export default function App() {
                   href="https://www.linkedin.com/in/kareem-haddad-4136a3287/"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-3 rounded-lg bg-white/5 px-4 py-3 hover:bg-white/10 transition"
+                  className="flex items-center gap-3 rounded-lg bg-white/5 px-4 py-3 hover:bg-white/10 transition focus-visible:outline-none"
                 >
                   <Icon.Linkedin className="h-5 w-5 text-emerald-300" />
                   linkedin.com/in/kareem-haddad
