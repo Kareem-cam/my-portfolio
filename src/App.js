@@ -1,10 +1,14 @@
-// App.js — deep navy, multi-layer mouse "spotlight", richer animations, clickable projects
-// Left menu highlights on click + scroll; sections/labels/chips animate in.
+// App.js — deep navy + TRIPLE-LAYER mouse-follow glow (bright white like hers) + juicy animations
+// - Glow follows cursor with smooth trail (multi-layer bloom: core/mid/wide)
+// - Cards have 3D tilt/parallax that reacts to mouse
+// - Sections/chips animate in; top progress bar
+// - Left nav highlights on click AND scroll
+// - Projects clickable; swap the hrefs with your repo URLs
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
+import { motion, useScroll, useSpring } from "framer-motion";
 
-/* === Animation helpers === */
+/* ===== animation helpers ===== */
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
   whileInView: { opacity: 1, y: 0 },
@@ -17,13 +21,8 @@ const chipFX = (i) => ({
   transition: { delay: 0.05 * i, duration: 0.35, ease: "easeOut" },
   viewport: { once: true, amount: 0.6 },
 });
-const cardHover = {
-  whileHover: { y: -6, scale: 1.005, rotate: -0.2 },
-  whileTap: { y: 0, scale: 0.997, rotate: 0 },
-  transition: { type: "spring", stiffness: 280, damping: 22, mass: 0.7 },
-};
 
-/* === Icons === */
+/* ===== icons ===== */
 const Icon = {
   Github: (p) => (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...p}>
@@ -52,20 +51,44 @@ const Icon = {
   ),
 };
 
-/* === Card === */
-const Card = ({ children, className = "" }) => (
-  <motion.div
-    className={`rounded-2xl border border-white/10 bg-white/[0.045] p-6 backdrop-blur-sm ${className}`}
-    initial={{ opacity: 0, y: 12 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, amount: 0.25 }}
-    transition={{ duration: 0.45 }}
-  >
-    {children}
-  </motion.div>
-);
+/* ===== card with 3D tilt (mouse reactive) ===== */
+const TiltCard = ({ children, className = "" }) => {
+  const ref = useRef(null);
+  const [style, setStyle] = useState({});
+  const onMove = (e) => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const rx = ((y / rect.height) - 0.5) * -6; // tilt range
+    const ry = ((x / rect.width) - 0.5) * 6;
+    const tx = ((x / rect.width) - 0.5) * 4; // subtle parallax
+    const ty = ((y / rect.height) - 0.5) * 4;
+    setStyle({
+      transform: `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) translateX(${tx}px) translateY(${ty}px)`,
+    });
+  };
+  const onLeave = () => setStyle({ transform: "perspective(800px) rotateX(0deg) rotateY(0deg) translateX(0px) translateY(0px)" });
 
-/* === Active section tracker === */
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      className={`rounded-2xl border border-white/10 bg-white/[0.05] p-6 backdrop-blur-sm will-change-transform ${className}`}
+      style={style}
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.25 }}
+      transition={{ duration: 0.45 }}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+/* ===== active-section tracker ===== */
 const useActiveSection = (ids) => {
   const [active, setActive] = useState(ids[0]);
   useEffect(() => {
@@ -82,21 +105,19 @@ const useActiveSection = (ids) => {
   return [active, setActive];
 };
 
-/* === Smooth scroll that updates highlight immediately === */
+/* ===== smooth-scroll that highlights immediately ===== */
 const scrollToId = (id, setActive) => {
   const el = document.getElementById(id);
   if (!el) return;
-  setActive(id);
+  setActive(id); // instant left-nav highlight
   const y = el.getBoundingClientRect().top + window.pageYOffset - 32;
   window.scrollTo({ top: y, behavior: "smooth" });
   history.replaceState(null, "", `#${id}`);
 };
 
-/* === Multi-layer mouse spotlight (closer to her site) ===
-   - 3 layers: core bright, mid glow, wide falloff
-   - smoothed trailing motion for a luxe feel
-*/
-const Spotlight = () => {
+/* ===== MULTI-LAYER MOUSE "SPOTLIGHT" (the bright white that follows) =====
+   Three additive layers + blur for bloom, with a smoothed trail */
+const MouseSpotlight = () => {
   const target = useRef({ x: -500, y: -500 });
   const [pos, setPos] = useState({ x: -500, y: -500 });
 
@@ -107,60 +128,63 @@ const Spotlight = () => {
     let raf;
     const tick = () => {
       setPos((p) => {
-        const k = 0.15; // higher = snappier
-        return {
-          x: p.x + (target.current.x - p.x) * k,
-          y: p.y + (target.current.y - p.y) * k,
-        };
+        const k = 0.18; // responsiveness (0.1 = floaty, 0.25 = snappy)
+        return { x: p.x + (target.current.x - p.x) * k, y: p.y + (target.current.y - p.y) * k };
       });
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-
     return () => {
       window.removeEventListener("mousemove", onMove);
       cancelAnimationFrame(raf);
     };
   }, []);
 
-  const core = `radial-gradient(120px 120px at ${pos.x}px ${pos.y}px, rgba(255,255,255,0.14), rgba(255,255,255,0) 55%)`;
-  const mid = `radial-gradient(240px 240px at ${pos.x}px ${pos.y}px, rgba(255,255,255,0.08), rgba(255,255,255,0) 65%)`;
-  const wide = `radial-gradient(520px 520px at ${pos.x}px ${pos.y}px, rgba(255,255,255,0.03), rgba(255,255,255,0) 70%)`;
+  const core = `radial-gradient(140px 140px at ${pos.x}px ${pos.y}px, rgba(255,255,255,0.18), rgba(255,255,255,0) 58%)`;
+  const mid  = `radial-gradient(300px 300px at ${pos.x}px ${pos.y}px, rgba(255,255,255,0.10), rgba(255,255,255,0) 65%)`;
+  const wide = `radial-gradient(620px 620px at ${pos.x}px ${pos.y}px, rgba(255,255,255,0.04), rgba(255,255,255,0) 72%)`;
 
   return (
-    <div
-      className="pointer-events-none fixed inset-0 -z-10"
-      style={{
-        backgroundImage: `${wide}, ${mid}, ${core}`,
-        mixBlendMode: "screen",
-      }}
-    />
+    <>
+      {/* base additive light */}
+      <div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{ backgroundImage: `${wide}, ${mid}, ${core}`, mixBlendMode: "screen" }}
+      />
+      {/* bloom blur pass */}
+      <div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{
+          backgroundImage: `${mid}`,
+          mixBlendMode: "screen",
+          filter: "blur(10px) brightness(1.1)",
+          opacity: 0.9,
+        }}
+      />
+    </>
   );
 };
 
-/* === Top progress bar === */
-const ProgressBar = () => {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, { stiffness: 140, damping: 26, mass: 0.2 });
-  return (
-    <motion.div style={{ scaleX }} className="fixed left-0 right-0 top-0 z-[60] h-0.5 origin-left bg-emerald-400/70" />
-  );
-};
-
-/* === Decorative background grid (subtle, to avoid “boring”) === */
-const Grid = () => (
+/* ===== subtle background grid so the page feels alive ===== */
+const GridBG = () => (
   <div
     aria-hidden
-    className="pointer-events-none fixed inset-0 -z-20 opacity-[0.12]"
+    className="pointer-events-none fixed inset-0 -z-20 opacity-[0.10]"
     style={{
       backgroundImage:
-        "linear-gradient(to right, #ffffff0a 1px, transparent 1px), linear-gradient(to bottom, #ffffff0a 1px, transparent 1px)",
-      backgroundSize: "40px 40px",
-      maskImage:
-        "radial-gradient(1200px 1200px at 40% 30%, black 65%, transparent 100%)",
+        "linear-gradient(to right, #ffffff12 1px, transparent 1px), linear-gradient(to bottom, #ffffff12 1px, transparent 1px)",
+      backgroundSize: "42px 42px",
+      maskImage: "radial-gradient(1200px 1200px at 40% 30%, black 60%, transparent 100%)",
     }}
   />
 );
+
+/* ===== top scroll progress ===== */
+const ProgressBar = () => {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 160, damping: 24, mass: 0.2 });
+  return <motion.div style={{ scaleX }} className="fixed left-0 right-0 top-0 z-[60] h-0.5 origin-left bg-emerald-400/70" />;
+};
 
 /* ============================== */
 /* ============ APP ============= */
@@ -173,8 +197,8 @@ export default function App() {
   return (
     <div className="relative min-h-screen bg-[#0b1220] text-slate-200 selection:bg-emerald-300/20">
       <ProgressBar />
-      <Grid />
-      <Spotlight />
+      <GridBG />
+      <MouseSpotlight />
 
       <main className="mx-auto grid max-w-6xl gap-8 px-6 md:px-8 lg:grid-cols-12">
         {/* LEFT (sticky) */}
@@ -189,7 +213,7 @@ export default function App() {
               Kareem Haddad
             </motion.h1>
             <motion.h2 className="mt-2 text-xl font-semibold text-slate-300" {...fadeUp(0.05)}>
-              Front-End & Automation Engineer
+              Software Engineer
             </motion.h2>
 
             <motion.p className="mt-3 max-w-md text-slate-300" {...fadeUp(0.1)}>
@@ -200,7 +224,7 @@ export default function App() {
             </motion.p>
           </div>
 
-          {/* Left nav (click + scroll active) */}
+          {/* left nav (active on click + scroll; no blue focus) */}
           <nav className="mt-10">
             <ul className="space-y-4 text-sm tracking-wider">
               {sections.map((id) => (
@@ -247,13 +271,13 @@ export default function App() {
 
         {/* RIGHT (content) */}
         <section className="lg:col-span-7 py-16 space-y-24">
-          {/* ABOUT anchor target */}
+          {/* ABOUT anchor target for correct scroll offset */}
           <div id="about" />
 
           {/* EXPERIENCE */}
           <motion.section id="experience" {...fadeUp(0)}>
             <h3 className="mb-6 text-lg font-semibold text-slate-200">Experience</h3>
-            <Card>
+            <TiltCard>
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <h4 className="text-slate-100 font-semibold">
@@ -277,7 +301,7 @@ export default function App() {
                   </motion.span>
                 ))}
               </div>
-            </Card>
+            </TiltCard>
           </motion.section>
 
           {/* PROJECTS */}
@@ -286,48 +310,30 @@ export default function App() {
 
             <div className="grid gap-6 md:grid-cols-2">
               {/* Ticket Bot */}
-              <motion.a
-                {...cardHover}
-                href="https://github.com/Kareem-cam" // replace with repo
-                target="_blank"
-                rel="noreferrer"
-                className="block focus-visible:outline-none"
-              >
-                <Card className="h-full">
-                  <motion.h4 className="text-slate-100 font-semibold" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
-                    Ticket Bot — Orders & Mass-Clear
-                  </motion.h4>
+              <a href="https://github.com/Kareem-cam" target="_blank" rel="noreferrer" className="block focus-visible:outline-none">
+                <TiltCard className="h-full">
+                  <h4 className="text-slate-100 font-semibold">Ticket Bot — Orders & Mass-Clear</h4>
                   <p className="mt-2 text-slate-400">
                     Ticketing built for rush hours. Staff can <span className="text-slate-200">mass-clear tickets</span>,
                     claim/close with transcripts, and enforce role gating.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     {["Node", "Discord API", "Transcripts", "Role gating", "Rate limits"].map((t, i) => (
-                      <motion.span
-                        key={t}
-                        className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300"
-                        {...chipFX(i)}
-                      >
+                      <motion.span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300" {...chipFX(i)}>
                         {t}
                       </motion.span>
                     ))}
                   </div>
-                  <motion.div className="mt-4 flex items-center gap-2 text-emerald-300" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
+                  <div className="mt-4 flex items-center gap-2 text-emerald-300">
                     <Icon.Github className="w-4 h-4" />
                     <span>View on GitHub</span>
-                  </motion.div>
-                </Card>
-              </motion.a>
+                  </div>
+                </TiltCard>
+              </a>
 
               {/* Queue Bot */}
-              <motion.a
-                {...cardHover}
-                href="https://github.com/Kareem-cam" // replace with repo
-                target="_blank"
-                rel="noreferrer"
-                className="block focus-visible:outline-none"
-              >
-                <Card className="h-full">
+              <a href="https://github.com/Kareem-cam" target="_blank" rel="noreferrer" className="block focus-visible:outline-none">
+                <TiltCard className="h-full">
                   <h4 className="text-slate-100 font-semibold">Queue Bot — Fair Worker Routing</h4>
                   <p className="mt-2 text-slate-400">
                     Workers (not customers) join the queue. New orders go to the next worker automatically for{" "}
@@ -335,90 +341,66 @@ export default function App() {
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     {["Node", "Discord API", "Slash commands", "Redis/JSON store", "Metrics"].map((t, i) => (
-                      <motion.span
-                        key={t}
-                        className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300"
-                        {...chipFX(i)}
-                      >
+                      <motion.span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300" {...chipFX(i)}>
                         {t}
                       </motion.span>
                     ))}
                   </div>
-                  <motion.div className="mt-4 flex items-center gap-2 text-emerald-300" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
+                  <div className="mt-4 flex items-center gap-2 text-emerald-300">
                     <Icon.Github className="w-4 h-4" />
                     <span>View on GitHub</span>
-                  </motion.div>
-                </Card>
-              </motion.a>
+                  </div>
+                </TiltCard>
+              </a>
 
               {/* Count Bot */}
-              <motion.a
-                {...cardHover}
-                href="https://github.com/Kareem-cam" // replace with repo
-                target="_blank"
-                rel="noreferrer"
-                className="block focus-visible:outline-none"
-              >
-                <Card className="h-full">
+              <a href="https://github.com/Kareem-cam" target="_blank" rel="noreferrer" className="block focus-visible:outline-none">
+                <TiltCard className="h-full">
                   <h4 className="text-slate-100 font-semibold">Count Bot — Orders Leaderboard</h4>
                   <p className="mt-2 text-slate-400">
                     Tracks orders per worker and shows a live <span className="text-slate-200">leaderboard</span>. Prevents doubles and keeps audit logs.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     {["Node", "Discord API", "Anti-spam", "Audit logs"].map((t, i) => (
-                      <motion.span
-                        key={t}
-                        className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300"
-                        {...chipFX(i)}
-                      >
+                      <motion.span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300" {...chipFX(i)}>
                         {t}
                       </motion.span>
                     ))}
                   </div>
-                  <motion.div className="mt-4 flex items-center gap-2 text-emerald-300" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
+                  <div className="mt-4 flex items-center gap-2 text-emerald-300">
                     <Icon.Github className="w-4 h-4" />
                     <span>View on GitHub</span>
-                  </motion.div>
-                </Card>
-              </motion.a>
+                  </div>
+                </TiltCard>
+              </a>
 
               {/* Uber Eats Estimator */}
-              <motion.a
-                {...cardHover}
-                href="https://github.com/Kareem-cam" // replace with repo
-                target="_blank"
-                rel="noreferrer"
-                className="block focus-visible:outline-none"
-              >
-                <Card className="h-full">
+              <a href="https://github.com/Kareem-cam" target="_blank" rel="noreferrer" className="block focus-visible:outline-none">
+                <TiltCard className="h-full">
                   <h4 className="text-slate-100 font-semibold">Uber Eats Estimator — Cart Lock & Fees</h4>
                   <p className="mt-2 text-slate-400">
                     Parses group-order links, detects locked carts, and estimates totals with taxes, fees, and promos.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     {["Playwright/Puppeteer", "Automation", "Node"].map((t, i) => (
-                      <motion.span
-                        key={t}
-                        className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300"
-                        {...chipFX(i)}
-                      >
+                      <motion.span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300" {...chipFX(i)}>
                         {t}
                       </motion.span>
                     ))}
                   </div>
-                  <motion.div className="mt-4 flex items-center gap-2 text-emerald-300" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
+                  <div className="mt-4 flex items-center gap-2 text-emerald-300">
                     <Icon.Github className="w-4 h-4" />
                     <span>View on GitHub</span>
-                  </motion.div>
-                </Card>
-              </motion.a>
+                  </div>
+                </TiltCard>
+              </a>
             </div>
           </motion.section>
 
           {/* CONTACT */}
           <motion.section id="contact" {...fadeUp(0)}>
             <h3 className="mb-6 text-lg font-semibold text-slate-200">Contact</h3>
-            <Card>
+            <TiltCard>
               <div className="grid sm:grid-cols-2 gap-4">
                 <a
                   href="mailto:kareem12345h@gmail.com"
@@ -450,7 +432,7 @@ export default function App() {
                   cam1p
                 </div>
               </div>
-            </Card>
+            </TiltCard>
           </motion.section>
 
           <p className="pb-10 text-center text-xs text-slate-500">
