@@ -1,7 +1,7 @@
-// App.js — solid navy background + enhanced mouse spotlight + richer animations
-// - Left menu highlights immediately on click AND on scroll
-// - About/Projects/Contact sections animate in
-// - Project cards have hover/press animation and are fully clickable
+// App.js — solid navy background + mouse-follow "spotlight" + smooth animations
+// - Left menu highlights on click AND on scroll
+// - Sections and chips animate in
+// - Project cards are fully clickable
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useScroll, useSpring } from "framer-motion";
@@ -94,36 +94,43 @@ const scrollToId = (id, setActive) => {
   history.replaceState(null, "", `#${id}`);
 };
 
-/* ---------- spotlight following cursor (animated with spring) ---------- */
+/* ---------- MOUSE-FOLLOW "SPOTLIGHT" (this is the white spot) ---------- */
 const Spotlight = () => {
-  const [pos, setPos] = useState({ x: -500, y: -500 });
+  // target: where the mouse actually is
   const target = useRef({ x: -500, y: -500 });
-  // simple rAF loop to lerp towards target for a silky trail
+  // pos: a smoothed/lerped position for nicer trailing motion
+  const [pos, setPos] = useState({ x: -500, y: -500 });
+
   useEffect(() => {
-    let raf;
-    const step = () => {
-      setPos((p) => {
-        const k = 0.12; // smoothing
-        const nx = p.x + (target.current.x - p.x) * k;
-        const ny = p.y + (target.current.y - p.y) * k;
-        return { x: nx, y: ny };
-      });
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
     const onMove = (e) => (target.current = { x: e.clientX, y: e.clientY });
     window.addEventListener("mousemove", onMove);
+
+    let raf;
+    const tick = () => {
+      setPos((p) => {
+        const k = 0.12; // smoothing factor (lower = more lag)
+        return {
+          x: p.x + (target.current.x - p.x) * k,
+          y: p.y + (target.current.y - p.y) * k,
+        };
+      });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
     return () => {
       window.removeEventListener("mousemove", onMove);
       cancelAnimationFrame(raf);
     };
   }, []);
+
   return (
     <div
       className="pointer-events-none fixed inset-0 -z-10"
       style={{
+        // Subtle white glow that fades out; tweak alpha/size to taste
         background: `radial-gradient(220px 220px at ${pos.x}px ${pos.y}px,
-          rgba(255,255,255,0.08), rgba(255,255,255,0.0) 60%)`,
+          rgba(255,255,255,0.08), rgba(255,255,255,0) 60%)`,
         mixBlendMode: "screen",
       }}
     />
@@ -135,10 +142,7 @@ const ProgressBar = () => {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 25, mass: 0.2 });
   return (
-    <motion.div
-      style={{ scaleX }}
-      className="fixed left-0 right-0 top-0 z-[60] h-0.5 origin-left bg-emerald-400/70"
-    />
+    <motion.div style={{ scaleX }} className="fixed left-0 right-0 top-0 z-[60] h-0.5 origin-left bg-emerald-400/70" />
   );
 };
 
@@ -148,8 +152,7 @@ const ProgressBar = () => {
 export default function App() {
   const sections = ["about", "experience", "projects", "contact"];
   const [active, setActive] = useActiveSection(sections);
-
-  const chipListExp = useMemo(() => ["Power BI", "Data Quality", "Dashboards"], []);
+  const expChips = useMemo(() => ["Power BI", "Data Quality", "Dashboards"], []);
 
   return (
     <div className="relative min-h-screen bg-[#0b1220] text-slate-200 selection:bg-emerald-300/20">
@@ -169,18 +172,18 @@ export default function App() {
               Kareem Haddad
             </motion.h1>
             <motion.h2 className="mt-2 text-xl font-semibold text-slate-300" {...fadeUp(0.05)}>
-              Aspiring Software Engineer 
+              Aspiring Software Engineer
             </motion.h2>
 
             <motion.p className="mt-3 max-w-md text-slate-300" {...fadeUp(0.1)}>
-              Sophomore Software Engineering student at the University of Michigan – Dearborn, passionate about developing
-              efficient and innovative software solutions. Experienced in C++, Python, and web technologies, with hands
-              on projects in automation, simulation, and application development. Committed to continuous learning and
-              advancing my skills as a future engineer.
+              Sophomore Software Engineering student at the University of Michigan – Dearborn, passionate about
+              developing efficient and innovative software solutions. Experienced in C++, Python, and web technologies,
+              with hands on projects in automation, simulation, and application development. Committed to continuous
+              learning and advancing my skills as a future engineer.
             </motion.p>
           </div>
 
-          {/* Left nav */}
+          {/* Left nav (highlights immediately on click and via scroll) */}
           <nav className="mt-10">
             <ul className="space-y-4 text-sm tracking-wider">
               {sections.map((id) => (
@@ -227,7 +230,7 @@ export default function App() {
 
         {/* RIGHT (content) */}
         <section className="lg:col-span-7 py-16 space-y-24">
-          {/* ABOUT anchor (offset target) */}
+          {/* ABOUT anchor target */}
           <div id="about" />
 
           {/* EXPERIENCE */}
@@ -241,13 +244,13 @@ export default function App() {
                   </h4>
                   <p className="mt-2 text-slate-400">
                     Assisted on projects and helped distribute accurate data using <span className="text-slate-200">Power BI</span>.
-                    Supported reporting tasks and quality checks.
+                    Supported reporting tasks and quality checks to ensure stakeholders received the correct insights.
                   </p>
                 </div>
                 <span className="text-xs text-slate-500">2024 — Present</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                {chipListExp.map((t, i) => (
+                {expChips.map((t, i) => (
                   <motion.span
                     key={t}
                     className="rounded-full bg-emerald-400/10 text-emerald-200/90 border border-emerald-400/20 px-2.5 py-1 text-xs"
@@ -268,7 +271,7 @@ export default function App() {
               {/* Ticket Bot */}
               <motion.a
                 {...hoverLift}
-                href="https://github.com/Kareem-cam" // replace with repo URL
+                href="https://github.com/Kareem-cam" // replace with your repo
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -300,7 +303,7 @@ export default function App() {
               {/* Queue Bot */}
               <motion.a
                 {...hoverLift}
-                href="https://github.com/Kareem-cam" // replace with repo URL
+                href="https://github.com/Kareem-cam" // replace with your repo
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -332,7 +335,7 @@ export default function App() {
               {/* Count Bot */}
               <motion.a
                 {...hoverLift}
-                href="https://github.com/Kareem-cam" // replace with repo URL
+                href="https://github.com/Kareem-cam" // replace with your repo
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -363,7 +366,7 @@ export default function App() {
               {/* Uber Eats Estimator */}
               <motion.a
                 {...hoverLift}
-                href="https://github.com/Kareem-cam" // replace with repo URL
+                href="https://github.com/Kareem-cam" // replace with your repo
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
