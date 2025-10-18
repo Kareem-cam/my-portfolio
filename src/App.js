@@ -1,20 +1,29 @@
-// App.js — solid navy background, spotlight cursor, Brittany-style layout
-// - About replaced with your text
-// - Left menu highlights immediately on click (and via scroll)
-// - Experience updated (no "Stakeholder Support" chip)
-// - Projects are fully clickable and link to GitHub rows
+// App.js — solid navy background + enhanced mouse spotlight + richer animations
+// - Left menu highlights immediately on click AND on scroll
+// - About/Projects/Contact sections animate in
+// - Project cards have hover/press animation and are fully clickable
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, useScroll, useSpring } from "framer-motion";
 
-/* ---------- animations ---------- */
+/* ---------- animation helpers ---------- */
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 16 },
   whileInView: { opacity: 1, y: 0 },
   transition: { duration: 0.6, ease: "easeOut", delay },
   viewport: { once: true, amount: 0.4 },
 });
-const hoverLift = { whileHover: { y: -2 }, whileTap: { y: 0 } };
+const chip = (i) => ({
+  initial: { opacity: 0, y: 8 },
+  whileInView: { opacity: 1, y: 0 },
+  transition: { delay: 0.05 * i, duration: 0.35, ease: "easeOut" },
+  viewport: { once: true, amount: 0.6 },
+});
+const hoverLift = {
+  whileHover: { y: -4, scale: 1.01 },
+  whileTap: { y: 0, scale: 0.995 },
+  transition: { type: "spring", stiffness: 260, damping: 20 },
+};
 
 /* ---------- icons ---------- */
 const Icon = {
@@ -43,19 +52,22 @@ const Icon = {
       <path d="M20 4H4c-1.1 0-2 .9-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5L4 8V6l8 5 8-5v2Z" />
     </svg>
   ),
-  External: (p) => (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...p}>
-      <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3ZM5 5h6v2H7v10h10v-4h2v6H5V5Z" />
-    </svg>
-  ),
 };
 
 /* ---------- thin card ---------- */
 const Card = ({ children, className = "" }) => (
-  <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-6 ${className}`}>{children}</div>
+  <motion.div
+    className={`rounded-2xl border border-white/10 bg-white/[0.04] p-6 ${className}`}
+    initial={{ opacity: 0, y: 10 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true, amount: 0.25 }}
+    transition={{ duration: 0.45 }}
+  >
+    {children}
+  </motion.div>
 );
 
-/* ---------- active-section tracker (returns [active, setActive]) ---------- */
+/* ---------- active-section tracker ---------- */
 const useActiveSection = (ids) => {
   const [active, setActive] = useState(ids[0]);
   useEffect(() => {
@@ -76,28 +88,56 @@ const useActiveSection = (ids) => {
 const scrollToId = (id, setActive) => {
   const el = document.getElementById(id);
   if (!el) return;
+  setActive(id); // highlight immediately on click
   const y = el.getBoundingClientRect().top + window.pageYOffset - 32;
-  setActive?.(id); // update left-nav immediately
   window.scrollTo({ top: y, behavior: "smooth" });
   history.replaceState(null, "", `#${id}`);
 };
 
-/* ---------- subtle spotlight following cursor ---------- */
+/* ---------- spotlight following cursor (animated with spring) ---------- */
 const Spotlight = () => {
   const [pos, setPos] = useState({ x: -500, y: -500 });
+  const target = useRef({ x: -500, y: -500 });
+  // simple rAF loop to lerp towards target for a silky trail
   useEffect(() => {
-    const onMove = (e) => setPos({ x: e.clientX, y: e.clientY });
+    let raf;
+    const step = () => {
+      setPos((p) => {
+        const k = 0.12; // smoothing
+        const nx = p.x + (target.current.x - p.x) * k;
+        const ny = p.y + (target.current.y - p.y) * k;
+        return { x: nx, y: ny };
+      });
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    const onMove = (e) => (target.current = { x: e.clientX, y: e.clientY });
     window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      cancelAnimationFrame(raf);
+    };
   }, []);
   return (
     <div
       className="pointer-events-none fixed inset-0 -z-10"
       style={{
         background: `radial-gradient(220px 220px at ${pos.x}px ${pos.y}px,
-          rgba(255,255,255,0.06), rgba(255,255,255,0.0) 60%)`,
+          rgba(255,255,255,0.08), rgba(255,255,255,0.0) 60%)`,
         mixBlendMode: "screen",
       }}
+    />
+  );
+};
+
+/* ---------- top progress bar ---------- */
+const ProgressBar = () => {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 25, mass: 0.2 });
+  return (
+    <motion.div
+      style={{ scaleX }}
+      className="fixed left-0 right-0 top-0 z-[60] h-0.5 origin-left bg-emerald-400/70"
     />
   );
 };
@@ -109,8 +149,11 @@ export default function App() {
   const sections = ["about", "experience", "projects", "contact"];
   const [active, setActive] = useActiveSection(sections);
 
+  const chipListExp = useMemo(() => ["Power BI", "Data Quality", "Dashboards"], []);
+
   return (
-    <div className="relative min-h-screen bg-[#0b1220] text-slate-200">
+    <div className="relative min-h-screen bg-[#0b1220] text-slate-200 selection:bg-emerald-300/20">
+      <ProgressBar />
       <Spotlight />
 
       <main className="mx-auto grid max-w-6xl gap-8 px-6 md:px-8 lg:grid-cols-12">
@@ -126,15 +169,14 @@ export default function App() {
               Kareem Haddad
             </motion.h1>
             <motion.h2 className="mt-2 text-xl font-semibold text-slate-300" {...fadeUp(0.05)}>
-              Front-End & Automation Engineer
+              Aspiring Software Engineer 
             </motion.h2>
 
-            {/* ABOUT TEXT (your requested copy) */}
             <motion.p className="mt-3 max-w-md text-slate-300" {...fadeUp(0.1)}>
-              Sophomore Software Engineering student at the University of Michigan – Dearborn, passionate about
-              developing efficient and innovative software solutions. Experienced in C++, Python, and web technologies,
-              with hands on projects in automation, simulation, and application development. Committed to continuous
-              learning and advancing my skills as a future engineer.
+              Sophomore Software Engineering student at the University of Michigan – Dearborn, passionate about developing
+              efficient and innovative software solutions. Experienced in C++, Python, and web technologies, with hands
+              on projects in automation, simulation, and application development. Committed to continuous learning and
+              advancing my skills as a future engineer.
             </motion.p>
           </div>
 
@@ -185,7 +227,7 @@ export default function App() {
 
         {/* RIGHT (content) */}
         <section className="lg:col-span-7 py-16 space-y-24">
-          {/* ABOUT anchor target (so clicking "about" scrolls correctly) */}
+          {/* ABOUT anchor (offset target) */}
           <div id="about" />
 
           {/* EXPERIENCE */}
@@ -199,19 +241,20 @@ export default function App() {
                   </h4>
                   <p className="mt-2 text-slate-400">
                     Assisted on projects and helped distribute accurate data using <span className="text-slate-200">Power BI</span>.
-                    Supported reporting tasks and quality checks to ensure stakeholders received the correct insights.
+                    Supported reporting tasks and quality checks.
                   </p>
                 </div>
                 <span className="text-xs text-slate-500">2024 — Present</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                {["Power BI", "Data Quality", "Dashboards"].map((t) => (
-                  <span
+                {chipListExp.map((t, i) => (
+                  <motion.span
                     key={t}
                     className="rounded-full bg-emerald-400/10 text-emerald-200/90 border border-emerald-400/20 px-2.5 py-1 text-xs"
+                    {...chip(i)}
                   >
                     {t}
-                  </span>
+                  </motion.span>
                 ))}
               </div>
             </Card>
@@ -225,7 +268,7 @@ export default function App() {
               {/* Ticket Bot */}
               <motion.a
                 {...hoverLift}
-                href="https://github.com/Kareem-cam" // TODO: replace with repo URL
+                href="https://github.com/Kareem-cam" // replace with repo URL
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -233,27 +276,31 @@ export default function App() {
                 <Card className="h-full">
                   <h4 className="text-slate-100 font-semibold">Ticket Bot — Orders & Mass-Clear</h4>
                   <p className="mt-2 text-slate-400">
-                    Ticketing system for busy order servers. Staff can <span className="text-slate-200">mass-clear tickets</span>,
-                    claim/close with transcripts, and enforce role gating. Designed for rush hours.
+                    Ticketing built for rush hours. Staff can <span className="text-slate-200">mass-clear tickets</span>,
+                    claim/close with transcripts, and enforce role gating.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                    {["Node", "Discord API", "Transcripts", "Role gating", "Rate limits"].map((t) => (
-                      <span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300">
+                    {["Node", "Discord API", "Transcripts", "Role gating", "Rate limits"].map((t, i) => (
+                      <motion.span
+                        key={t}
+                        className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300"
+                        {...chip(i)}
+                      >
                         {t}
-                      </span>
+                      </motion.span>
                     ))}
                   </div>
-                  <div className="mt-4 flex items-center gap-2 text-emerald-300">
+                  <motion.div className="mt-4 flex items-center gap-2 text-emerald-300" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
                     <Icon.Github className="w-4 h-4" />
                     <span>View on GitHub</span>
-                  </div>
+                  </motion.div>
                 </Card>
               </motion.a>
 
               {/* Queue Bot */}
               <motion.a
                 {...hoverLift}
-                href="https://github.com/Kareem-cam" // TODO: replace with repo URL
+                href="https://github.com/Kareem-cam" // replace with repo URL
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -261,27 +308,31 @@ export default function App() {
                 <Card className="h-full">
                   <h4 className="text-slate-100 font-semibold">Queue Bot — Fair Worker Routing</h4>
                   <p className="mt-2 text-slate-400">
-                    Workers (not customers) join the queue. New orders go to the next worker automatically, ensuring{" "}
-                    <span className="text-slate-200">fair distribution</span> and preventing overload.
+                    Workers (not customers) join the queue. New orders go to the next worker automatically for{" "}
+                    <span className="text-slate-200">fair distribution</span>.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                    {["Node", "Discord API", "Slash commands", "Redis/JSON store", "Metrics"].map((t) => (
-                      <span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300">
+                    {["Node", "Discord API", "Slash commands", "Redis/JSON store", "Metrics"].map((t, i) => (
+                      <motion.span
+                        key={t}
+                        className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300"
+                        {...chip(i)}
+                      >
                         {t}
-                      </span>
+                      </motion.span>
                     ))}
                   </div>
-                  <div className="mt-4 flex items-center gap-2 text-emerald-300">
+                  <motion.div className="mt-4 flex items-center gap-2 text-emerald-300" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
                     <Icon.Github className="w-4 h-4" />
                     <span>View on GitHub</span>
-                  </div>
+                  </motion.div>
                 </Card>
               </motion.a>
 
               {/* Count Bot */}
               <motion.a
                 {...hoverLift}
-                href="https://github.com/Kareem-cam" // TODO: replace with repo URL
+                href="https://github.com/Kareem-cam" // replace with repo URL
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -289,28 +340,30 @@ export default function App() {
                 <Card className="h-full">
                   <h4 className="text-slate-100 font-semibold">Count Bot — Orders Leaderboard</h4>
                   <p className="mt-2 text-slate-400">
-                    Tracks how many orders each worker completes and shows a live{" "}
-                    <span className="text-slate-200">leaderboard</span>. Prevents doubles and keeps audit logs for clean
-                    performance reviews.
+                    Tracks orders per worker and shows a live <span className="text-slate-200">leaderboard</span>. Prevents doubles and keeps audit logs.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                    {["Node", "Discord API", "Anti-spam", "Audit logs"].map((t) => (
-                      <span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300">
+                    {["Node", "Discord API", "Anti-spam", "Audit logs"].map((t, i) => (
+                      <motion.span
+                        key={t}
+                        className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300"
+                        {...chip(i)}
+                      >
                         {t}
-                      </span>
+                      </motion.span>
                     ))}
                   </div>
-                  <div className="mt-4 flex items-center gap-2 text-emerald-300">
+                  <motion.div className="mt-4 flex items-center gap-2 text-emerald-300" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
                     <Icon.Github className="w-4 h-4" />
                     <span>View on GitHub</span>
-                  </div>
+                  </motion.div>
                 </Card>
               </motion.a>
 
               {/* Uber Eats Estimator */}
               <motion.a
                 {...hoverLift}
-                href="https://github.com/Kareem-cam" // TODO: replace with repo URL
+                href="https://github.com/Kareem-cam" // replace with repo URL
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -321,16 +374,20 @@ export default function App() {
                     Parses group-order links, detects locked carts, and estimates totals with taxes, fees, and promos.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                    {["Playwright/Puppeteer", "Automation", "Node"].map((t) => (
-                      <span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300">
+                    {["Playwright/Puppeteer", "Automation", "Node"].map((t, i) => (
+                      <motion.span
+                        key={t}
+                        className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300"
+                        {...chip(i)}
+                      >
                         {t}
-                      </span>
+                      </motion.span>
                     ))}
                   </div>
-                  <div className="mt-4 flex items-center gap-2 text-emerald-300">
+                  <motion.div className="mt-4 flex items-center gap-2 text-emerald-300" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
                     <Icon.Github className="w-4 h-4" />
                     <span>View on GitHub</span>
-                  </div>
+                  </motion.div>
                 </Card>
               </motion.a>
             </div>
