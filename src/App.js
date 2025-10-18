@@ -1,20 +1,20 @@
 // App.js
 import { motion } from "framer-motion";
 
-/* ---------- tiny animation helpers ---------- */
+/* ---------- small animation helpers ---------- */
 const fade = (delay = 0) => ({
-  initial: { opacity: 0, y: 18 },
+  initial: { opacity: 0, y: 16 },
   whileInView: { opacity: 1, y: 0 },
   transition: { duration: 0.6, ease: "easeOut", delay },
   viewport: { once: true },
 });
-const hoverTap = { whileHover: { scale: 1.04 }, whileTap: { scale: 0.97 } };
+const hoverTap = { whileHover: { scale: 1.03 }, whileTap: { scale: 0.98 } };
 
-/* ---------- smooth-scroll (with header offset) ---------- */
+/* ---------- smooth scroll with header offset ---------- */
 const scrollToId = (id) => {
   const el = document.getElementById(id);
   if (!el) return;
-  const y = el.getBoundingClientRect().top + window.pageYOffset - 72; // ~nav height
+  const y = el.getBoundingClientRect().top + window.pageYOffset - 72;
   window.scrollTo({ top: y, behavior: "smooth" });
 };
 
@@ -35,379 +35,330 @@ const Icon = {
       <path d="M20 4H4c-1.1 0-2 .9-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5L4 8V6l8 5 8-5v2Z" />
     </svg>
   ),
-  Instagram: (props) => (
+  External: (props) => (
     <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.5A5.5 5.5 0 1 1 6.5 13 5.5 5.5 0 0 1 12 7.5Zm0 2A3.5 3.5 0 1 0 15.5 13 3.5 3.5 0 0 0 12 9.5Zm5.25-2.25a1.25 1.25 0 1 1-1.25 1.25 1.25 1.25 0 0 1 1.25-1.25Z" />
-    </svg>
-  ),
-  Discord: (props) => (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <path d="M20 4a16 16 0 0 0-4-.93l-.2.4A13 13 0 0 1 12 4c-1.28 0-2.54-.18-3.8-.53l-.2-.4A16 16 0 0 0 4 4C2.38 6.41 1.57 8.73 1.34 11.02c.37 4.13 2.77 6.6 5.62 8l.45-.78c-.92-.35-1.75-.87-2.47-1.54.2.15.41.29.63.42 2.3 1.35 4.6 1.64 6.43 1.64s4.12-.29 6.43-1.64c.22-.13.43-.27.63-.42-.72.67-1.55 1.19-2.47 1.54l.45.78c2.85-1.4 5.25-3.87 5.62-8C22.43 8.73 21.62 6.41 20 4ZM9.35 14.5c-.66 0-1.2-.66-1.2-1.47 0-.81.53-1.47 1.2-1.47.66 0 1.2.66 1.2 1.47 0 .81-.53 1.47-1.2 1.47Zm5.3 0c-.66 0-1.2-.66-1.2-1.47 0-.81.54-1.47 1.2-1.47.67 0 1.2.66 1.2 1.47 0 .81-.53 1.47-1.2 1.47Z" />
+      <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3ZM5 5h6v2H7v10h10v-4h2v6H5V5Z" />
     </svg>
   ),
 };
 
+/* ---------- card ---------- */
 const Card = ({ children, className = "" }) => (
   <div className={"rounded-2xl border border-white/10 bg-neutral-900/80 backdrop-blur-sm p-6 " + className}>
     {children}
   </div>
 );
 
+/* ============================== */
+/* ============ APP ============= */
+/* ============================== */
+
 export default function App() {
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* NAV */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-black/70 border-b border-white/10">
-        <nav className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <a
-            href="#hero"
-            className="font-semibold tracking-wide"
-            onClick={(e) => { e.preventDefault(); scrollToId("hero"); }}
+    <div className="min-h-screen bg-[#0b0f14] text-white">
+      {/* NAV — minimal, resume-style (emerald/teal accents) */}
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-[#0b0f14]/70 border-b border-white/10">
+        <nav className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => scrollToId("intro")}
+            className="font-semibold tracking-wide hover:text-emerald-300 transition"
           >
-            <span className="text-rose-500">Kareem</span>
-            <span className="text-white/60">.dev</span>
-          </a>
+            Kareem<span className="text-white/60">.dev</span>
+          </button>
+
           <ul className="flex gap-6 text-sm">
             {[
               ["About", "about"],
-              ["Skills", "skills"],
-              ["Languages", "languages"],
+              ["Experience", "experience"],
               ["Projects", "projects"],
               ["Contact", "contact"],
             ].map(([label, id]) => (
               <motion.li key={id} {...hoverTap}>
                 <a
                   href={`#${id}`}
-                  className="hover:text-rose-400 transition"
-                  onClick={(e) => { e.preventDefault(); scrollToId(id); }}
+                  className="hover:text-emerald-300 transition"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToId(id);
+                  }}
                 >
                   {label}
                 </a>
               </motion.li>
             ))}
+            <li>
+              {/* drop a resume.pdf in /public to enable */}
+              <a
+                className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-sm hover:bg-emerald-500/10 transition"
+                href="/resume.pdf"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Résumé
+              </a>
+            </li>
           </ul>
         </nav>
       </header>
 
-      {/* HERO (text + GIF) */}
-      <section id="hero" className="relative">
-        <div className="max-w-6xl mx-auto px-4 py-16 md:py-24 grid md:grid-cols-2 gap-10 items-center">
-          {/* Left: text */}
-          <div className="text-center md:text-left">
-            <motion.h1
-              className="text-4xl md:text-6xl font-extrabold leading-tight"
-              initial={{ opacity: 0, y: -18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <span className="inline-flex items-center gap-3">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-rose-400 via-rose-500 to-red-400">
-                  Hi,
-                </span>
-                {/* wave */}
-                <motion.span
-                  role="img"
-                  aria-label="wave"
-                  className="text-4xl md:text-5xl"
-                  animate={{ rotate: [0, 14, -6, 0] }}
-                  transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 1.5 }}
-                >
-                  👋
-                </motion.span>
-              </span>
-              <br />
-              I’m{" "}
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-rose-400 via-rose-500 to-red-400">
-                Kareem (cam)
-              </span>
-            </motion.h1>
+      {/* INTRO — text only (removed the image) */}
+      <section id="intro" className="max-w-5xl mx-auto px-4 py-16 md:py-24">
+        <motion.h1
+          className="text-4xl md:text-6xl font-extrabold leading-tight"
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7 }}
+        >
+          <span className="text-emerald-300">Kareem Haddad</span>
+        </motion.h1>
 
-            <motion.p className="mt-4 text-base md:text-lg text-white/80" {...fade(0.1)}>
-              17-year-old software engineer into <span className="text-white">reverse engineering</span> and clean,
-              fast product experiences. Aspiring <span className="text-white">full-stack developer</span>.
-            </motion.p>
+        <motion.p className="mt-4 max-w-2xl text-white/80" {...fade(0.05)}>
+          17-year-old software engineer focused on reverse engineering and pragmatic full-stack work.
+          I build fast, reliable tools with React, Node, and Python — and I love turning messy workflows
+          into clean, automated systems.
+        </motion.p>
 
-            <motion.div className="mt-8 flex flex-wrap md:justify-start justify-center gap-3" {...fade(0.2)}>
-              <motion.button
-                onClick={() => scrollToId("projects")}
-                className="px-5 py-3 rounded-xl bg-gradient-to-r from-rose-600 to-red-800 shadow-lg"
-                {...hoverTap}
-              >
-                View Projects
-              </motion.button>
-              <motion.button
-                onClick={() => scrollToId("contact")}
-                className="px-5 py-3 rounded-xl border border-white/15 hover:border-rose-400/60 hover:text-rose-300 transition"
-                {...hoverTap}
-              >
-                Contact Me
-              </motion.button>
-            </motion.div>
-
-            <motion.div className="mt-6 flex flex-wrap gap-2 justify-center md:justify-start text-xs" {...fade(0.3)}>
-              {["C++", "JavaScript", "React", "Tailwind", "Node", "Python"].map((t) => (
-                <span key={t} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/80">
-                  {t}
-                </span>
-              ))}
-            </motion.div>
-          </div>
-
-          {/* Right: GIF (from public/images) */}
-          <motion.div {...fade(0.15)} className="w-full">
-            <div className="rounded-2xl overflow-hidden border border-white/10 bg-neutral-900/60">
-              <img
-                src="/images/kareem-hero.gif"
-                alt="Kareem hero"
-                className="w-full h-[360px] object-cover"
-              />
-            </div>
-            <p className="mt-2 text-center md:text-right text-xs text-white/40">
-              
-            </p>
-          </motion.div>
-        </div>
+        <motion.div className="mt-6 flex gap-4" {...fade(0.1)}>
+          <a
+            href="mailto:kareem12345h@gmail.com"
+            className="rounded-xl px-5 py-3 border border-emerald-400/40 hover:bg-emerald-500/10 transition"
+          >
+            Get in touch
+          </a>
+          <a
+            href="https://github.com/Kareem-cam"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-xl px-5 py-3 border border-white/15 hover:bg-white/10 transition inline-flex items-center gap-2"
+          >
+            <Icon.Github className="h-4 w-4" /> GitHub
+          </a>
+        </motion.div>
       </section>
 
-      {/* SKILLS */}
-      <section id="skills" className="max-w-6xl mx-auto px-4 py-20">
-        <motion.h2 className="text-3xl md:text-4xl font-bold mb-8" {...fade(0)}>
-          Skills
+      {/* ABOUT */}
+      <section id="about" className="max-w-5xl mx-auto px-4 pb-8">
+        <motion.h2 className="text-2xl md:text-3xl font-bold mb-4" {...fade(0)}>
+          About
+        </motion.h2>
+        <Card>
+          <motion.p className="text-white/85 leading-relaxed" {...fade(0.05)}>
+            I learn by shipping. Recent work includes Discord automation, order-ops workflows, and
+            small UIs with Framer Motion + Tailwind. Interests: protocol spelunking, reliability,
+            and making the “happy path” feel obvious.
+          </motion.p>
+          <div className="mt-4 flex flex-wrap gap-2 text-xs">
+            {["JavaScript", "React", "Tailwind", "Node", "Python", "C++"].map((t) => (
+              <span key={t} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/80">
+                {t}
+              </span>
+            ))}
+          </div>
+        </Card>
+      </section>
+
+      {/* EXPERIENCE — concise, resume-like blocks */}
+      <section id="experience" className="max-w-5xl mx-auto px-4 py-16 border-y border-white/10 bg-[#0b1218]">
+        <motion.h2 className="text-2xl md:text-3xl font-bold mb-8" {...fade(0)}>
+          Experience
         </motion.h2>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            { title: "Reverse Engineering", desc: "Understanding internals, protocols, and behavior to rebuild cleaner, faster versions." },
-            { title: "Backend & Automation", desc: "Node tooling, API design, data flow, scraping/automation with sane rate limits." },
-            { title: "Frontend & UI/UX", desc: "React + Tailwind + Motion for fast, smooth experiences with consistent design." },
-            { title: "Reliability", desc: "Persistence, logging, rate limiting, error handling, resilience patterns." },
-            { title: "Collab & Git", desc: "Readable commits, PRs, branching strategies, and clean repos." },
-            { title: "Performance", desc: "Measuring bottlenecks, improving latency, and optimizing hot paths." },
-          ].map((s, i) => (
-            <Card key={s.title}>
-              <motion.div {...fade(0.05 + i * 0.05)}>
-                <h3 className="text-lg font-semibold text-rose-300">{s.title}</h3>
-                <p className="text-white/75 mt-1">{s.desc}</p>
-              </motion.div>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* MOST USED LANGUAGES */}
-      <section id="languages" className="border-y border-white/10 bg-neutral-950">
-        <div className="max-w-6xl mx-auto px-4 py-20">
-          <motion.h2 className="text-3xl md:text-4xl font-bold mb-8" {...fade(0)}>
-            Most Used Languages
-          </motion.h2>
-
+        <div className="grid gap-6">
           <Card>
-            <div className="space-y-5">
-              {[
-                { name: "C++", color: "bg-rose-600", pct: 35 },
-                { name: "JavaScript", color: "bg-red-700", pct: 25 },
-                { name: "Python", color: "bg-rose-500", pct: 25 },
-                { name: "HTML/CSS", color: "bg-red-800", pct: 15 },
-              ].map((l, i) => (
-                <motion.div key={l.name} {...fade(0.05 + i * 0.05)}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-white/85">{l.name}</span>
-                    <span className="text-white/60">{l.pct}%</span>
-                  </div>
-                  <div className="h-3 rounded-full bg-white/10 overflow-hidden">
-                    <motion.div
-                      className={`h-3 ${l.color}`}
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${l.pct}%` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
-                      viewport={{ once: true }}
-                    />
-                  </div>
-                </motion.div>
-              ))}
-              <p className="text-xs text-white/40">*Approximate usage for now.</p>
-            </div>
+            <motion.div className="flex flex-col gap-2" {...fade(0.05)}>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="text-lg font-semibold text-emerald-300">Freelance — Full-Stack & Automation</h3>
+                <span className="text-xs text-white/50">2024 — present</span>
+              </div>
+              <ul className="list-disc ml-5 text-white/80 space-y-1">
+                <li>Built Discord bots for order queues, ticketing, and moderation.</li>
+                <li>Designed small React UIs with Tailwind + Framer Motion.</li>
+                <li>Shipped reliable Node services with logging, rate limits, and retries.</li>
+              </ul>
+            </motion.div>
           </Card>
         </div>
       </section>
 
-      {/* PROJECTS */}
-      <section id="projects" className="border-b border-white/10 bg-neutral-950/60">
-        <div className="max-w-6xl mx-auto px-4 py-20">
-          <motion.h2 className="text-3xl md:text-4xl font-bold mb-10" {...fade(0)}>
-            Featured Projects
-          </motion.h2>
+      {/* PROJECTS — Brittany-style grid with clean tags */}
+      <section id="projects" className="max-w-5xl mx-auto px-4 py-16">
+        <motion.h2 className="text-2xl md:text-3xl font-bold mb-8" {...fade(0)}>
+          Featured projects
+        </motion.h2>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Project 1 — Count Bot */}
-            <Card>
-              <motion.div {...fade(0.05)} className="space-y-4">
-                <div className="overflow-hidden rounded-xl border border-white/10">
-                  <motion.img
-                    src="/images/count-bot-avatar.png"
-                    alt="Discord Count Bot"
-                    className="w-full h-52 object-cover"
-                    {...hoverTap}
-                  />
-                </div>
-                <div className="flex items-center gap-3">
-                  <img
-                    src="/images/count-bot-avatar.png"
-                    alt="Count Bot avatar"
-                    className="w-10 h-10 rounded-full ring-1 ring-rose-500/40"
-                  />
-                  <h3 className="text-2xl font-semibold text-rose-400">Discord Count Bot</h3>
-                </div>
-                <p className="text-white/75">
-                  Tracks counting games, enforces order + anti-spam, records streaks, and includes admin tools & slash commands.
-                </p>
-                <div className="flex flex-wrap gap-2 text-xs">
-                  {["Node", "Discord API", "JSON", "Rate limiting"].map((t) => (
-                    <span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-white/75">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-                <motion.a
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Ticket Bot for Orders */}
+          <Card>
+            <motion.div {...fade(0.05)} className="space-y-3">
+              <h3 className="text-xl font-semibold">
+                <span className="text-emerald-300">Ticket Bot</span> — orders & mass-clear
+              </h3>
+              <p className="text-white/80">
+                Discord ticketing system for food orders. Staff can{" "}
+                <span className="text-white">mass-clear tickets safely</span>, claim/close with transcripts,
+                and enforce role-based permissions. Built for speed during peak hours.
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {["Node", "Discord API", "Rate limiting", "Transcripts", "Role gating"].map((t) => (
+                  <span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-white/75">
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-4">
+                <a
+                  className="inline-flex items-center gap-2 text-emerald-300 hover:text-emerald-200 underline underline-offset-4"
                   href="https://github.com/Kareem-cam"
-                  className="inline-flex items-center gap-2 text-rose-300 hover:text-rose-200 underline underline-offset-4"
-                  {...hoverTap}
+                  target="_blank"
+                  rel="noreferrer"
                 >
                   <Icon.Github className="w-4 h-4" />
-                  GitHub
-                </motion.a>
-              </motion.div>
-            </Card>
+                  Code
+                </a>
+              </div>
+            </motion.div>
+          </Card>
 
-            {/* Project 2 — Estimation Bot */}
-            <Card>
-              <motion.div {...fade(0.1)} className="space-y-4">
-                <div className="overflow-hidden rounded-xl border border-white/10">
-                  <motion.img
-                    src="/images/estimator-bot-avatar.svg"
-                    alt="Uber Eats Estimation Bot"
-                    className="w-full h-52 object-cover"
-                    {...hoverTap}
-                  />
-                </div>
-                <div className="flex items-center gap-3">
-                  <img
-                    src="/images/estimator-bot-avatar.svg"
-                    alt="Estimator Bot avatar"
-                    className="w-10 h-10 rounded-full ring-1 ring-rose-500/40"
-                  />
-                  <h3 className="text-2xl font-semibold text-red-400">Uber Eats Estimation Bot</h3>
-                </div>
-                <p className="text-white/75">
-                  Parses group-order links, detects locked carts, and estimates totals with taxes/fees & promos.
-                </p>
-                <div className="flex flex-wrap gap-2 text-xs">
-                  {["Automation", "Playwright/Puppeteer", "Promo logic", "Node"].map((t) => (
-                    <span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-white/75">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-                <motion.a
+          {/* Queue Bot */}
+          <Card>
+            <motion.div {...fade(0.1)} className="space-y-3">
+              <h3 className="text-xl font-semibold">
+                <span className="text-emerald-300">Queue Bot</span> — first-come ticket assigning
+              </h3>
+              <p className="text-white/80">
+                Customers join a queue and automatically receive a ticket when they reach the front.
+                Shows live position, ETA, and staff workload routing. Reduces chaos during rush windows.
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {["Node", "Discord API", "Redis/JSON store", "Slash commands"].map((t) => (
+                  <span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-white/75">
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-4">
+                <a
+                  className="inline-flex items-center gap-2 text-emerald-300 hover:text-emerald-200 underline underline-offset-4"
                   href="https://github.com/Kareem-cam"
-                  className="inline-flex items-center gap-2 text-rose-300 hover:text-rose-200 underline underline-offset-4"
-                  {...hoverTap}
+                  target="_blank"
+                  rel="noreferrer"
                 >
                   <Icon.Github className="w-4 h-4" />
-                  GitHub
-                </motion.a>
-              </motion.div>
-            </Card>
-          </div>
+                  Code
+                </a>
+              </div>
+            </motion.div>
+          </Card>
+
+          {/* Count Bot */}
+          <Card>
+            <motion.div {...fade(0.15)} className="space-y-3">
+              <h3 className="text-xl font-semibold">
+                <span className="text-emerald-300">Count Bot</span> — streaks & anti-spam
+              </h3>
+              <p className="text-white/80">
+                Tracks counting games, prevents double posts, and records streaks with admin tools and audit logs.
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {["Node", "Discord API", "Cooldowns", "Metrics"].map((t) => (
+                  <span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-white/75">
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <a
+                className="inline-flex items-center gap-2 text-emerald-300 hover:text-emerald-200 underline underline-offset-4"
+                href="https://github.com/Kareem-cam"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Icon.Github className="w-4 h-4" />
+                Code
+              </a>
+            </motion.div>
+          </Card>
+
+          {/* Uber Eats Estimator */}
+          <Card>
+            <motion.div {...fade(0.2)} className="space-y-3">
+              <h3 className="text-xl font-semibold">
+                <span className="text-emerald-300">Uber Eats Estimator</span> — cart lock & fee math
+              </h3>
+              <p className="text-white/80">
+                Parses group-order links, detects locked carts, and estimates totals with taxes, fees, and promos.
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {["Playwright/Puppeteer", "Automation", "Node"].map((t) => (
+                  <span key={t} className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-white/75">
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <a
+                className="inline-flex items-center gap-2 text-emerald-300 hover:text-emerald-200 underline underline-offset-4"
+                href="https://github.com/Kareem-cam"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Icon.Github className="w-4 h-4" />
+                Code
+              </a>
+            </motion.div>
+          </Card>
         </div>
       </section>
 
-      {/* ABOUT */}
-      <section id="about" className="max-w-6xl mx-auto px-4 py-20">
-        <motion.h2 className="text-3xl md:text-4xl font-bold mb-6" {...fade(0)}>
-          About Me
-        </motion.h2>
-        <Card>
-          <motion.p className="text-white/85 leading-relaxed" {...fade(0.05)}>
-            17-year-old software engineer exploring reverse engineering and full-stack development. I like understanding
-            system internals, improving reliability, and crafting thoughtful UI/UX. I learn by building and shipping.
-          </motion.p>
-        </Card>
-      </section>
-
-      {/* CONTACT (links only) */}
-      <section id="contact" className="max-w-6xl mx-auto px-4 py-20">
-        <motion.h2 className="text-3xl md:text-4xl font-bold mb-6" {...fade(0)}>
+      {/* CONTACT */}
+      <section id="contact" className="max-w-5xl mx-auto px-4 pb-20">
+        <motion.h2 className="text-2xl md:text-3xl font-bold mb-6" {...fade(0)}>
           Contact
         </motion.h2>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 gap-6">
           <Card>
-            <motion.div className="space-y-4" {...fade(0.05)}>
-              <p className="text-white/90">Let’s build something together.</p>
-              <div className="grid gap-3">
-                <a
-                  href="mailto:kareem12345h@gmail.com"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition"
-                >
-                  <Icon.Mail className="w-5 h-5 text-rose-300" />
-                  kareem12345h@gmail.com
-                </a>
-
-                <a
-                  href="https://github.com/Kareem-cam"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition"
-                >
-                  <Icon.Github className="w-5 h-5 text-rose-300" />
-                  github.com/Kareem-cam
-                </a>
-
-                <a
-                  href="https://www.linkedin.com/in/kareem-haddad-4136a3287/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition"
-                >
-                  <Icon.Linkedin className="w-5 h-5 text-rose-300" />
-                  linkedin.com/in/kareem-haddad
-                </a>
-
-                <a
-                  href="https://www.instagram.com/kareemmmm___/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition"
-                >
-                  <Icon.Instagram className="w-5 h-5 text-rose-300" />
-                  @kareemmmm___
-                </a>
-
-                <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5">
-                  <Icon.Discord className="w-5 h-5 text-rose-300" />
-                  cam1p
-                </div>
-
-                {/* Optional resume link if you add /public/resume.pdf */}
-                {/* <a href="/resume.pdf" target="_blank" rel="noreferrer" className="mt-2 inline-flex w-fit items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-rose-600 to-red-800 hover:opacity-90 transition">Download Résumé</a> */}
-              </div>
+            <motion.div className="space-y-3" {...fade(0.05)}>
+              <a
+                href="mailto:kareem12345h@gmail.com"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition"
+              >
+                <Icon.Mail className="w-5 h-5 text-emerald-300" />
+                kareem12345h@gmail.com
+              </a>
+              <a
+                href="https://github.com/Kareem-cam"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition"
+              >
+                <Icon.Github className="w-5 h-5 text-emerald-300" />
+                github.com/Kareem-cam
+              </a>
+              <a
+                href="https://www.linkedin.com/in/kareem-haddad-4136a3287/"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition"
+              >
+                <Icon.Linkedin className="w-5 h-5 text-emerald-300" />
+                linkedin.com/in/kareem-haddad
+              </a>
             </motion.div>
           </Card>
 
           <Card>
             <motion.div className="space-y-2" {...fade(0.1)}>
-              <h3 className="text-lg font-semibold text-rose-300">Availability</h3>
+              <h3 className="text-lg font-semibold text-emerald-300">Availability</h3>
               <p className="text-white/75">
-                Open to part-time projects, internships, and collabs. Reverse engineering, tooling, and full-stack builds.
+                Open to internships and part-time project work. Happy to collaborate on automation,
+                Discord tooling, and React frontends.
               </p>
             </motion.div>
           </Card>
         </div>
       </section>
 
-      <footer className="py-8 text-center text-white/50 text-sm">
-        © {new Date().getFullYear()} Kareem Haddad • Built with React, Tailwind & Framer Motion
+      <footer className="py-8 text-center text-white/50 text-sm border-t border-white/10">
+        © {new Date().getFullYear()} Kareem Haddad — Built with React, Tailwind & Framer Motion
       </footer>
     </div>
   );
