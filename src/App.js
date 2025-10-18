@@ -1,31 +1,29 @@
-// App.js — solid navy background + mouse-follow "spotlight" + smooth animations
-// - Left menu highlights on click AND on scroll
-// - Sections and chips animate in
-// - Project cards are fully clickable
+// App.js — deep navy, multi-layer mouse "spotlight", richer animations, clickable projects
+// Left menu highlights on click + scroll; sections/labels/chips animate in.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, useScroll, useSpring } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
 
-/* ---------- animation helpers ---------- */
+/* === Animation helpers === */
 const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 16 },
+  initial: { opacity: 0, y: 18 },
   whileInView: { opacity: 1, y: 0 },
   transition: { duration: 0.6, ease: "easeOut", delay },
-  viewport: { once: true, amount: 0.4 },
+  viewport: { once: true, amount: 0.45 },
 });
-const chip = (i) => ({
-  initial: { opacity: 0, y: 8 },
-  whileInView: { opacity: 1, y: 0 },
+const chipFX = (i) => ({
+  initial: { opacity: 0, y: 8, scale: 0.98 },
+  whileInView: { opacity: 1, y: 0, scale: 1 },
   transition: { delay: 0.05 * i, duration: 0.35, ease: "easeOut" },
   viewport: { once: true, amount: 0.6 },
 });
-const hoverLift = {
-  whileHover: { y: -4, scale: 1.01 },
-  whileTap: { y: 0, scale: 0.995 },
-  transition: { type: "spring", stiffness: 260, damping: 20 },
+const cardHover = {
+  whileHover: { y: -6, scale: 1.005, rotate: -0.2 },
+  whileTap: { y: 0, scale: 0.997, rotate: 0 },
+  transition: { type: "spring", stiffness: 280, damping: 22, mass: 0.7 },
 };
 
-/* ---------- icons ---------- */
+/* === Icons === */
 const Icon = {
   Github: (p) => (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...p}>
@@ -54,11 +52,11 @@ const Icon = {
   ),
 };
 
-/* ---------- thin card ---------- */
+/* === Card === */
 const Card = ({ children, className = "" }) => (
   <motion.div
-    className={`rounded-2xl border border-white/10 bg-white/[0.04] p-6 ${className}`}
-    initial={{ opacity: 0, y: 10 }}
+    className={`rounded-2xl border border-white/10 bg-white/[0.045] p-6 backdrop-blur-sm ${className}`}
+    initial={{ opacity: 0, y: 12 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true, amount: 0.25 }}
     transition={{ duration: 0.45 }}
@@ -67,13 +65,13 @@ const Card = ({ children, className = "" }) => (
   </motion.div>
 );
 
-/* ---------- active-section tracker ---------- */
+/* === Active section tracker === */
 const useActiveSection = (ids) => {
   const [active, setActive] = useState(ids[0]);
   useEffect(() => {
     const obs = new IntersectionObserver(
       (entries) => entries.forEach((e) => e.isIntersecting && setActive(e.target.id)),
-      { rootMargin: "-45% 0px -45% 0px", threshold: [0, 0.3, 1] }
+      { rootMargin: "-45% 0px -45% 0px", threshold: [0, 0.35, 1] }
     );
     ids.forEach((id) => {
       const el = document.getElementById(id);
@@ -84,21 +82,22 @@ const useActiveSection = (ids) => {
   return [active, setActive];
 };
 
-/* ---------- smooth-scroll with immediate highlight ---------- */
+/* === Smooth scroll that updates highlight immediately === */
 const scrollToId = (id, setActive) => {
   const el = document.getElementById(id);
   if (!el) return;
-  setActive(id); // highlight immediately on click
+  setActive(id);
   const y = el.getBoundingClientRect().top + window.pageYOffset - 32;
   window.scrollTo({ top: y, behavior: "smooth" });
   history.replaceState(null, "", `#${id}`);
 };
 
-/* ---------- MOUSE-FOLLOW "SPOTLIGHT" (this is the white spot) ---------- */
+/* === Multi-layer mouse spotlight (closer to her site) ===
+   - 3 layers: core bright, mid glow, wide falloff
+   - smoothed trailing motion for a luxe feel
+*/
 const Spotlight = () => {
-  // target: where the mouse actually is
   const target = useRef({ x: -500, y: -500 });
-  // pos: a smoothed/lerped position for nicer trailing motion
   const [pos, setPos] = useState({ x: -500, y: -500 });
 
   useEffect(() => {
@@ -108,7 +107,7 @@ const Spotlight = () => {
     let raf;
     const tick = () => {
       setPos((p) => {
-        const k = 0.12; // smoothing factor (lower = more lag)
+        const k = 0.15; // higher = snappier
         return {
           x: p.x + (target.current.x - p.x) * k,
           y: p.y + (target.current.y - p.y) * k,
@@ -124,27 +123,44 @@ const Spotlight = () => {
     };
   }, []);
 
+  const core = `radial-gradient(120px 120px at ${pos.x}px ${pos.y}px, rgba(255,255,255,0.14), rgba(255,255,255,0) 55%)`;
+  const mid = `radial-gradient(240px 240px at ${pos.x}px ${pos.y}px, rgba(255,255,255,0.08), rgba(255,255,255,0) 65%)`;
+  const wide = `radial-gradient(520px 520px at ${pos.x}px ${pos.y}px, rgba(255,255,255,0.03), rgba(255,255,255,0) 70%)`;
+
   return (
     <div
       className="pointer-events-none fixed inset-0 -z-10"
       style={{
-        // Subtle white glow that fades out; tweak alpha/size to taste
-        background: `radial-gradient(220px 220px at ${pos.x}px ${pos.y}px,
-          rgba(255,255,255,0.08), rgba(255,255,255,0) 60%)`,
+        backgroundImage: `${wide}, ${mid}, ${core}`,
         mixBlendMode: "screen",
       }}
     />
   );
 };
 
-/* ---------- top progress bar ---------- */
+/* === Top progress bar === */
 const ProgressBar = () => {
   const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 25, mass: 0.2 });
+  const scaleX = useSpring(scrollYProgress, { stiffness: 140, damping: 26, mass: 0.2 });
   return (
     <motion.div style={{ scaleX }} className="fixed left-0 right-0 top-0 z-[60] h-0.5 origin-left bg-emerald-400/70" />
   );
 };
+
+/* === Decorative background grid (subtle, to avoid “boring”) === */
+const Grid = () => (
+  <div
+    aria-hidden
+    className="pointer-events-none fixed inset-0 -z-20 opacity-[0.12]"
+    style={{
+      backgroundImage:
+        "linear-gradient(to right, #ffffff0a 1px, transparent 1px), linear-gradient(to bottom, #ffffff0a 1px, transparent 1px)",
+      backgroundSize: "40px 40px",
+      maskImage:
+        "radial-gradient(1200px 1200px at 40% 30%, black 65%, transparent 100%)",
+    }}
+  />
+);
 
 /* ============================== */
 /* ============ APP ============= */
@@ -157,6 +173,7 @@ export default function App() {
   return (
     <div className="relative min-h-screen bg-[#0b1220] text-slate-200 selection:bg-emerald-300/20">
       <ProgressBar />
+      <Grid />
       <Spotlight />
 
       <main className="mx-auto grid max-w-6xl gap-8 px-6 md:px-8 lg:grid-cols-12">
@@ -172,7 +189,7 @@ export default function App() {
               Kareem Haddad
             </motion.h1>
             <motion.h2 className="mt-2 text-xl font-semibold text-slate-300" {...fadeUp(0.05)}>
-              Aspiring Software Engineer
+              Front-End & Automation Engineer
             </motion.h2>
 
             <motion.p className="mt-3 max-w-md text-slate-300" {...fadeUp(0.1)}>
@@ -183,7 +200,7 @@ export default function App() {
             </motion.p>
           </div>
 
-          {/* Left nav (highlights immediately on click and via scroll) */}
+          {/* Left nav (click + scroll active) */}
           <nav className="mt-10">
             <ul className="space-y-4 text-sm tracking-wider">
               {sections.map((id) => (
@@ -254,7 +271,7 @@ export default function App() {
                   <motion.span
                     key={t}
                     className="rounded-full bg-emerald-400/10 text-emerald-200/90 border border-emerald-400/20 px-2.5 py-1 text-xs"
-                    {...chip(i)}
+                    {...chipFX(i)}
                   >
                     {t}
                   </motion.span>
@@ -270,14 +287,16 @@ export default function App() {
             <div className="grid gap-6 md:grid-cols-2">
               {/* Ticket Bot */}
               <motion.a
-                {...hoverLift}
-                href="https://github.com/Kareem-cam" // replace with your repo
+                {...cardHover}
+                href="https://github.com/Kareem-cam" // replace with repo
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
               >
                 <Card className="h-full">
-                  <h4 className="text-slate-100 font-semibold">Ticket Bot — Orders & Mass-Clear</h4>
+                  <motion.h4 className="text-slate-100 font-semibold" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
+                    Ticket Bot — Orders & Mass-Clear
+                  </motion.h4>
                   <p className="mt-2 text-slate-400">
                     Ticketing built for rush hours. Staff can <span className="text-slate-200">mass-clear tickets</span>,
                     claim/close with transcripts, and enforce role gating.
@@ -287,7 +306,7 @@ export default function App() {
                       <motion.span
                         key={t}
                         className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300"
-                        {...chip(i)}
+                        {...chipFX(i)}
                       >
                         {t}
                       </motion.span>
@@ -302,8 +321,8 @@ export default function App() {
 
               {/* Queue Bot */}
               <motion.a
-                {...hoverLift}
-                href="https://github.com/Kareem-cam" // replace with your repo
+                {...cardHover}
+                href="https://github.com/Kareem-cam" // replace with repo
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -319,7 +338,7 @@ export default function App() {
                       <motion.span
                         key={t}
                         className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300"
-                        {...chip(i)}
+                        {...chipFX(i)}
                       >
                         {t}
                       </motion.span>
@@ -334,8 +353,8 @@ export default function App() {
 
               {/* Count Bot */}
               <motion.a
-                {...hoverLift}
-                href="https://github.com/Kareem-cam" // replace with your repo
+                {...cardHover}
+                href="https://github.com/Kareem-cam" // replace with repo
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -350,7 +369,7 @@ export default function App() {
                       <motion.span
                         key={t}
                         className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300"
-                        {...chip(i)}
+                        {...chipFX(i)}
                       >
                         {t}
                       </motion.span>
@@ -365,8 +384,8 @@ export default function App() {
 
               {/* Uber Eats Estimator */}
               <motion.a
-                {...hoverLift}
-                href="https://github.com/Kareem-cam" // replace with your repo
+                {...cardHover}
+                href="https://github.com/Kareem-cam" // replace with repo
                 target="_blank"
                 rel="noreferrer"
                 className="block focus-visible:outline-none"
@@ -381,7 +400,7 @@ export default function App() {
                       <motion.span
                         key={t}
                         className="rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-slate-300"
-                        {...chip(i)}
+                        {...chipFX(i)}
                       >
                         {t}
                       </motion.span>
